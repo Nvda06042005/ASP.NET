@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VTV News Clone</title>
+    <link rel="stylesheet" href="~/css/site.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="logo">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/39/Vietnam_Television_logo_from_2013.svg/800px-Vietnam_Television_logo_from_2013.svg.png" alt="VTV Logo" height="60">
+            <span class="logo-text">VN TIN TỨC VIỆT NAM</span>
+        </div>
+        <div class="header-right">
+            <div class="social-icons">
+                <a href="#"><i class="fab fa-facebook-f"></i></a>
+                <a href="#"><i class="fab fa-twitter"></i></a>
+                <a href="#"><i class="fab fa-youtube"></i></a>
+            </div>
+            <div class="search-box">
+                <form method="post">
+                    <input type="text" name="Query" placeholder="Nhập từ khóa..." required>
+                    <input type="date" name="FromDate">
+                    <select name="SortBy">
+                        <option value="popularity">Popularity</option>
+                        <option value="relevancy">Relevancy</option>
+                        <option value="publishedAt">PublishedAt</option>
+                    </select>
+                    <button type="submit">
+                        <i class="fas fa-search"></i>
+                    </button>
+                    <!-- Thêm trường ẩn để giữ thông tin về tab hiện tại và danh mục -->
+                    <input type="hidden" name="ActiveTab" value="@ViewBag.ActiveTab" />
+                    <input type="hidden" name="CategoryName" value="@ViewBag.CategoryName" />
+                </form>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation Menu -->
+    <nav class="nav-menu">
+        <ul>
+            <li><a asp-controller="Home" asp-action="Index" class="@(ViewBag.ActiveTab == "home" ? "active" : "")">TRANG CHỦ</a></li>
+            <li><a asp-controller="Home" asp-action="ThoiSu" class="@(ViewBag.ActiveTab == "thoisu" ? "active" : "")">THỜI SỰ</a></li>
+            <li><a asp-controller="Home" asp-action="KinhTe" class="@(ViewBag.ActiveTab == "kinhte" ? "active" : "")">KINH TẾ</a></li>
+            <li><a asp-controller="Home" asp-action="TheGioi" class="@(ViewBag.ActiveTab == "thegioi" ? "active" : "")">THẾ GIỚI</a></li>
+            <li><a asp-controller="Home" asp-action="TheThao" class="@(ViewBag.ActiveTab == "thethao" ? "active" : "")">THỂ THAO</a></li>
+            <li><a asp-controller="Home" asp-action="GiaiTri" class="@(ViewBag.ActiveTab == "giaitri" ? "active" : "")">GIẢI TRÍ</a></li>
+        </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        @RenderBody()
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>© 2025 VTV News. Đài Truyền Hình Việt Nam</p>
+    </footer>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

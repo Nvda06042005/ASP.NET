@@ -1,0 +1,125 @@
+{
+  "Version": 1,
+  "Hash": "ZaZf5OwPLERts1eYnJXcLk23VKT+ZlWqk7jaY+KILbM=",
+  "Source": "VtvNewsApp",
+  "BasePath": "_content/VtvNewsApp",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [
+    {
+      "Name": "VtvNewsApp\\wwwroot",
+      "Source": "VtvNewsApp",
+      "ContentRoot": "C:\\Users\\TUF\\Downloads\\vtv-news-aspnet-core-clean\\wwwroot\\",
+      "BasePath": "_content/VtvNewsApp",
+      "Pattern": "**"
+    }
+  ],
+  "Assets": [
+    {
+      "Identity": "C:\\Users\\TUF\\Downloads\\vtv-news-aspnet-core-clean\\wwwroot\\css\\site.css",
+      "SourceId": "VtvNewsApp",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\TUF\\Downloads\\vtv-news-aspnet-core-clean\\wwwroot\\",
+      "BasePath": "_content/VtvNewsApp",
+      "RelativePath": "css/site#[.{fingerprint}]?.css",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "lqjgyp12j2",
+      "Integrity": "E0I8R/4So4zIElZslNkOyCxYwN1+3POOr9X77/BaPWc=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\css\\site.css"
+    }
+  ],
+  "Endpoints": [
+    {
+      "Route": "css/site.css",
+      "AssetFile": "C:\\Users\\TUF\\Downloads\\vtv-news-aspnet-core-clean\\wwwroot\\css\\site.css",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "3990"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/css"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"E0I8R/4So4zIElZslNkOyCxYwN1+3POOr9X77/BaPWc=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Tue, 01 Apr 2025 14:27:58 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-E0I8R/4So4zIElZslNkOyCxYwN1+3POOr9X77/BaPWc="
+        }
+      ]
+    },
+    {
+      "Route": "css/site.lqjgyp12j2.css",
+      "AssetFile": "C:\\Users\\TUF\\Downloads\\vtv-news-aspnet-core-clean\\wwwroot\\css\\site.css",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "3990"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/css"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"E0I8R/4So4zIElZslNkOyCxYwN1+3POOr9X77/BaPWc=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Tue, 01 Apr 2025 14:27:58 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "lqjgyp12j2"
+        },
+        {
+          "Name": "label",
+          "Value": "css/site.css"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-E0I8R/4So4zIElZslNkOyCxYwN1+3POOr9X77/BaPWc="
+        }
+      ]
+    }
+  ]
+}
