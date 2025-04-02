@@ -29,82 +29,87 @@ namespace VtvNewsApp.Controllers
         [HttpGet]
         public async Task<IActionResult> Index()
         {
-            // Sử dụng từ khóa "Vietnam" để luôn lọc tin tức liên quan đến Việt Nam
-            return await GetNewsForCategory("Vietnam", "home", "Trang Chủ");
+            // Mở rộng từ khóa tìm kiếm
+            var viewModel = await GetNewsViewModel("Vietnam OR Việt Nam tin tức", "home", "Trang Chủ");
+            return View(viewModel);
         }
 
         [HttpPost]
         public async Task<IActionResult> Index(NewsViewModel model)
         {
-            // Thêm "Vietnam" vào từ khóa tìm kiếm nếu chưa có
-            model.Query = AddVietnamKeywordIfNeeded(model.Query);
-            return await ProcessSearch(model);
+            // Không bắt buộc phải có từ khóa Vietnam
+            var resultModel = await ProcessSearch(model);
+            return View(resultModel);
         }
 
         [HttpGet]
         public async Task<IActionResult> ThoiSu()
         {
-            return await GetNewsForCategory("Vietnam chính trị", "thoisu", "Thời Sự");
+            var viewModel = await GetNewsViewModel("tin tức chính trị", "thoisu", "Thời Sự");
+            return View(viewModel);
         }
 
         [HttpPost]
         public async Task<IActionResult> ThoiSu(NewsViewModel model)
         {
-            model.Query = AddVietnamKeywordIfNeeded(model.Query);
-            return await ProcessSearch(model);
+            var resultModel = await ProcessSearch(model);
+            return View(resultModel);
         }
 
         [HttpGet]
         public async Task<IActionResult> KinhTe()
         {
-            return await GetNewsForCategory("Vietnam kinh tế", "kinhte", "Kinh Tế");
+            var viewModel = await GetNewsViewModel("kinh tế tài chính thương mại", "kinhte", "Kinh Tế");
+            return View(viewModel);
         }
 
         [HttpPost]
         public async Task<IActionResult> KinhTe(NewsViewModel model)
         {
-            model.Query = AddVietnamKeywordIfNeeded(model.Query);
-            return await ProcessSearch(model);
+            var resultModel = await ProcessSearch(model);
+            return View(resultModel);
         }
 
         [HttpGet]
         public async Task<IActionResult> TheGioi()
         {
-            // Đối với thế giới, chúng ta vẫn cần thêm Vietnam để ưu tiên tin tức liên quan đến Việt Nam
-            return await GetNewsForCategory("Vietnam thế giới", "thegioi", "Thế Giới");
+            var viewModel = await GetNewsViewModel("thế giới quốc tế", "thegioi", "Thế Giới");
+            return View(viewModel);
         }
 
         [HttpPost]
         public async Task<IActionResult> TheGioi(NewsViewModel model)
         {
-            model.Query = AddVietnamKeywordIfNeeded(model.Query);
-            return await ProcessSearch(model);
+            var resultModel = await ProcessSearch(model);
+            return View(resultModel);
         }
 
         [HttpGet]
         public async Task<IActionResult> TheThao()
         {
-            return await GetNewsForCategory("Vietnam thể thao", "thethao", "Thể Thao");
+            var viewModel = await GetNewsViewModel("thể thao bóng đá world cup olympic", "thethao", "Thể Thao");
+            return View(viewModel);
         }
 
         [HttpPost]
         public async Task<IActionResult> TheThao(NewsViewModel model)
         {
-            model.Query = AddVietnamKeywordIfNeeded(model.Query);
-            return await ProcessSearch(model);
+            var resultModel = await ProcessSearch(model);
+            return View(resultModel);
         }
 
         [HttpGet]
         public async Task<IActionResult> GiaiTri()
         {
-            return await GetNewsForCategory("Vietnam giải trí", "giaitri", "Giải Trí");
+            var viewModel = await GetNewsViewModel("giải trí nghệ sĩ điện ảnh âm nhạc", "giaitri", "Giải Trí");
+            return View(viewModel);
         }
 
         [HttpPost]
         public async Task<IActionResult> GiaiTri(NewsViewModel model)
         {
-            model.Query = AddVietnamKeywordIfNeeded(model.Query);
-            return await ProcessSearch(model);
+            var resultModel = await ProcessSearch(model);
+            return View(resultModel);
         }
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
@@ -114,7 +119,7 @@ namespace VtvNewsApp.Controllers
         }
 
         // Phương thức hỗ trợ
-        private async Task<IActionResult> GetNewsForCategory(string query, string activeTab, string categoryName)
+        private async Task<NewsViewModel> GetNewsViewModel(string query, string activeTab, string categoryName)
         {
             var viewModel = new NewsViewModel
             {
@@ -125,20 +130,40 @@ namespace VtvNewsApp.Controllers
 
             try
             {
-                var articles = await _newsService.GetArticlesAsync(query, null, "popularity", 100);
-                var filteredArticles = _newsService.FilterArticles(articles, query);
-                viewModel.Articles = await TranslateArticlesAsync(filteredArticles);
+                // Tăng số lượng kết quả tìm kiếm
+                var articles = await _newsService.GetArticlesAsync(query, null, "relevancy", 50);
+                
+                if (articles == null || !articles.Any())
+                {
+                    _logger.LogWarning($"Không tìm thấy bài viết nào cho danh mục {categoryName} với từ khóa {query}");
+                    
+                    // Thử lại với ít từ khóa hơn nếu không tìm thấy kết quả
+                    string simpleQuery = GetSimplifiedQuery(query);
+                    if (simpleQuery != query)
+                    {
+                        articles = await _newsService.GetArticlesAsync(simpleQuery, null, "relevancy", 50);
+                    }
+                    
+                    if (articles == null || !articles.Any())
+                    {
+                        viewModel.ErrorMessage = "Không tìm thấy bài viết phù hợp. Vui lòng thử lại sau.";
+                        return viewModel;
+                    }
+                }
+                
+                // Không lọc kết quả theo từ khóa để hiển thị nhiều bài viết hơn
+                viewModel.Articles = await TranslateArticlesAsync(articles);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error fetching {categoryName} news");
-                viewModel.ErrorMessage = ex.Message;
+                _logger.LogError(ex, $"Lỗi khi tải tin tức cho danh mục {categoryName}: {ex.Message}");
+                viewModel.ErrorMessage = $"Đã xảy ra lỗi khi tải dữ liệu: {ex.Message}";
             }
 
-            return View("Index", viewModel);
+            return viewModel;
         }
 
-        private async Task<IActionResult> ProcessSearch(NewsViewModel model)
+        private async Task<NewsViewModel> ProcessSearch(NewsViewModel model)
         {
             var viewModel = new NewsViewModel
             {
@@ -160,19 +185,37 @@ namespace VtvNewsApp.Controllers
                 var articles = await _newsService.GetArticlesAsync(
                     model.Query,
                     fromDate,
-                    model.SortBy ?? "popularity",
-                    100);
+                    model.SortBy ?? "relevancy",
+                    50);
 
-                var filteredArticles = _newsService.FilterArticles(articles, model.Query);
-                viewModel.Articles = await TranslateArticlesAsync(filteredArticles);
+                if (articles == null || !articles.Any())
+                {
+                    _logger.LogWarning($"Không tìm thấy kết quả tìm kiếm cho {model.Query}");
+                    
+                    // Thử lại với ít từ khóa hơn nếu không tìm thấy kết quả
+                    string simpleQuery = GetSimplifiedQuery(model.Query);
+                    if (simpleQuery != model.Query)
+                    {
+                        articles = await _newsService.GetArticlesAsync(simpleQuery, fromDate, model.SortBy ?? "relevancy", 50);
+                    }
+                    
+                    if (articles == null || !articles.Any())
+                    {
+                        viewModel.ErrorMessage = "Không tìm thấy kết quả phù hợp với từ khóa tìm kiếm.";
+                        return viewModel;
+                    }
+                }
+
+                // Không lọc kết quả theo từ khóa để hiển thị nhiều bài viết hơn
+                viewModel.Articles = await TranslateArticlesAsync(articles);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing search");
-                viewModel.ErrorMessage = ex.Message;
+                _logger.LogError(ex, $"Lỗi khi tìm kiếm: {ex.Message}");
+                viewModel.ErrorMessage = $"Đã xảy ra lỗi khi tìm kiếm: {ex.Message}";
             }
 
-            return View("Index", viewModel);
+            return viewModel;
         }
 
         private async Task<List<Article>> TranslateArticlesAsync(List<Article> articles)
@@ -195,28 +238,27 @@ namespace VtvNewsApp.Controllers
             return translatedArticles;
         }
         
-        // Thêm từ khóa Vietnam vào query nếu chưa có
-        private string AddVietnamKeywordIfNeeded(string query)
+        // Rút gọn từ khóa tìm kiếm khi không tìm thấy kết quả
+        private string GetSimplifiedQuery(string query)
         {
             if (string.IsNullOrWhiteSpace(query))
-                return "Vietnam";
-                
-            // Kiểm tra xem query đã có từ khóa liên quan đến Việt Nam chưa
-            var vietnamKeywords = new[] 
-            { 
-                "vietnam", "việt nam", "viet nam", "vietnamese", "việt", "viet", 
-                "hanoi", "hà nội", "ha noi", "ho chi minh", "hồ chí minh", 
-                "saigon", "sài gòn", "sai gon", "đà nẵng", "da nang", "hue", "huế"
-            };
-            
-            var lowerQuery = query.ToLower();
-            bool hasVietnamKeyword = vietnamKeywords.Any(keyword => lowerQuery.Contains(keyword));
-            
-            if (hasVietnamKeyword)
                 return query;
                 
-            // Nếu chưa có, thêm "Vietnam" vào
-            return $"Vietnam {query}";
+            var words = query.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length <= 2)
+                return query;
+                
+            // Chỉ lấy 1-2 từ khóa quan trọng nhất
+            string[] importantKeywords = new[] { 
+                "tin tức", "thời sự", "chính trị", "kinh tế", "tài chính", "thế giới", 
+                "quốc tế", "thể thao", "bóng đá", "giải trí", "âm nhạc", "điện ảnh" 
+            };
+            
+            var simplifiedWords = words.Where(w => importantKeywords.Any(k => w.Contains(k))).Take(2);
+            if (!simplifiedWords.Any())
+                return words.Take(2).Aggregate((a, b) => $"{a} {b}");
+                
+            return simplifiedWords.Aggregate((a, b) => $"{a} {b}");
         }
     }
 

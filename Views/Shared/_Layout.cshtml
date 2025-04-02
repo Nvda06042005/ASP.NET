@@ -43,12 +43,12 @@
     <!-- Navigation Menu -->
     <nav class="nav-menu">
         <ul>
-            <li><a asp-controller="Home" asp-action="Index" class="@(ViewBag.ActiveTab == "home" ? "active" : "")">TRANG CHỦ</a></li>
-            <li><a asp-controller="Home" asp-action="ThoiSu" class="@(ViewBag.ActiveTab == "thoisu" ? "active" : "")">THỜI SỰ</a></li>
-            <li><a asp-controller="Home" asp-action="KinhTe" class="@(ViewBag.ActiveTab == "kinhte" ? "active" : "")">KINH TẾ</a></li>
-            <li><a asp-controller="Home" asp-action="TheGioi" class="@(ViewBag.ActiveTab == "thegioi" ? "active" : "")">THẾ GIỚI</a></li>
-            <li><a asp-controller="Home" asp-action="TheThao" class="@(ViewBag.ActiveTab == "thethao" ? "active" : "")">THỂ THAO</a></li>
-            <li><a asp-controller="Home" asp-action="GiaiTri" class="@(ViewBag.ActiveTab == "giaitri" ? "active" : "")">GIẢI TRÍ</a></li>
+            <li><a href="/" class="@(ViewBag.ActiveTab == "home" ? "active" : "")">TRANG CHỦ</a></li>
+            <li><a href="/Home/ThoiSu" class="@(ViewBag.ActiveTab == "thoisu" ? "active" : "")">THỜI SỰ</a></li>
+            <li><a href="/Home/KinhTe" class="@(ViewBag.ActiveTab == "kinhte" ? "active" : "")">KINH TẾ</a></li>
+            <li><a href="/Home/TheGioi" class="@(ViewBag.ActiveTab == "thegioi" ? "active" : "")">THẾ GIỚI</a></li>
+            <li><a href="/Home/TheThao" class="@(ViewBag.ActiveTab == "thethao" ? "active" : "")">THỂ THAO</a></li>
+            <li><a href="/Home/GiaiTri" class="@(ViewBag.ActiveTab == "giaitri" ? "active" : "")">GIẢI TRÍ</a></li>
         </ul>
     </nav>
 

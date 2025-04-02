@@ -1,0 +1,71 @@
+@model NewsViewModel
+
+@{
+    ViewData["Title"] = "Kinh Tế";
+    ViewBag.ActiveTab = Model.ActiveTab;
+    ViewBag.CategoryName = Model.CategoryName;
+}
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="error-message">
+        <h2>Đã xảy ra lỗi</h2>
+        <p>@Model.ErrorMessage</p>
+    </div>
+}
+
+<!-- Tên danh mục -->
+<h2 style="text-transform: uppercase; color:#d02028; margin-bottom:20px;">@(Model.CategoryName ?? "Kinh Tế")</h2>
+
+@if (Model.Articles != null && Model.Articles.Any())
+{
+    <!-- Layout dạng card -->
+    <section class="news-section">
+        <h2 class="section-title">Tin kinh tế mới nhất</h2>
+        <div class="news-grid-cards">
+            @foreach (var article in Model.Articles)
+            {
+                <div class="news-card">
+                    <div class="news-card-img">
+                        <img 
+                            src="@(article.UrlToImage ?? "https://via.placeholder.com/400x250?text=No+Image")" 
+                            alt="Hình ảnh bài báo"
+                            onerror="this.src='https://via.placeholder.com/400x250?text=Image+Not+Available'"
+                        >
+                    </div>
+                    <div class="news-card-body">
+                        <h3 class="news-card-title">
+                            @if (!string.IsNullOrEmpty(article.TranslatedTitle))
+                            {
+                                @article.TranslatedTitle
+                            }
+                            else
+                            {
+                                @article.Title
+                            }
+                        </h3>
+                        <p class="news-card-desc">
+                            @if (!string.IsNullOrEmpty(article.TranslatedDescription))
+                            {
+                                @article.TranslatedDescription
+                            }
+                            else
+                            {
+                                @article.Description
+                            }
+                        </p>
+                        <p class="news-card-time">@article.VnPublishedAt</p>
+                        <div class="news-card-source">
+                            <small>Nguồn: @(article.Source?.Name ?? "Không xác định")</small>
+                        </div>
+                        <a class="news-card-link" href="@article.Url" target="_blank">Xem chi tiết</a>
+                    </div>
+                </div>
+            }
+        </div>
+    </section>
+}
+else
+{
+    <p>Chưa có kết quả tìm kiếm. Vui lòng nhập từ khóa hoặc chờ hệ thống tải tin.</p>
+}
