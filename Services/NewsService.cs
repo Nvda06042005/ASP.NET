@@ -16,179 +16,79 @@ namespace VtvNewsApp.Services
         private readonly ILogger<NewsService> _logger;
         private readonly IConfiguration _configuration;
         private readonly string _apiKey;
-        private bool _useMockData = false;
 
         public NewsService(HttpClient httpClient, ILogger<NewsService> logger, IConfiguration configuration)
         {
             _httpClient = httpClient;
             _logger = logger;
             _configuration = configuration;
-            _apiKey = _configuration["NewsApiKey"] ?? "4dee47ab8112c1b949ecda490be79a17"; // Sử dụng key mặc định nếu không có cấu hình
-            
-            // Thêm timeout cho HttpClient
-            _httpClient.Timeout = TimeSpan.FromSeconds(15);
+            _apiKey = _configuration["NewsApiKey"] ?? "3aced82ed23d48b9af48973f9bde61b4";
         }
 
-        public async Task<List<Article>> GetArticlesAsync(string query, DateTime? fromDate, string sortBy, int pageSize = 100)
+        public async Task<List<Article>> GetArticlesAsync(string query, DateTime? fromDate, string sortBy, int pageSize = 50)
         {
-            // Nếu đã gặp lỗi trước đó và quyết định sử dụng dữ liệu mẫu
-            if (_useMockData)
+            // Mở rộng truy vấn để bao gồm các từ khóa Việt Nam nếu chưa có
+            string expandedQuery = query;
+            if (!query.Contains("Vietnam", StringComparison.OrdinalIgnoreCase) && 
+                !query.Contains("Việt Nam", StringComparison.OrdinalIgnoreCase))
             {
-                _logger.LogWarning("Đang sử dụng dữ liệu mẫu do gặp lỗi với API trước đó");
-                return GetMockData();
+                // Thêm từ khóa Việt Nam vào truy vấn nếu chưa có
+                expandedQuery = $"{query} OR Vietnam OR \"Việt Nam\"";
             }
             
-            try
+            var url = "https://newsapi.org/v2/everything";
+            
+            var queryParams = new Dictionary<string, string>
             {
-                // Thử tìm kiếm tin tức bằng NewsAPI thay vì GNews
-                string newsApiKey = "bb42bbe28f674f9c971b294deea569be"; // API key miễn phí cho NewsAPI
-                var url = "https://newsapi.org/v2/everything";
-                
-                // Chuẩn bị từ khóa tìm kiếm
-                string searchQuery = query;
-                if (!searchQuery.Contains("vietnam", StringComparison.OrdinalIgnoreCase) && 
-                    !searchQuery.Contains("việt nam", StringComparison.OrdinalIgnoreCase))
-                {
-                    // Thêm tiếng Việt vào ngôn ngữ tìm kiếm thay vì giới hạn bằng từ khóa
-                    searchQuery = searchQuery;
-                }
-                
-                var queryParams = new Dictionary<string, string>
-                {
-                    { "q", searchQuery },
-                    { "apiKey", newsApiKey },
-                    { "pageSize", pageSize.ToString() },
-                    { "language", "vi" }, // Tập trung tìm kiếm nội dung tiếng Việt
-                    { "sortBy", sortBy ?? "publishedAt" }
-                };
+                { "q", expandedQuery },
+                { "apiKey", _apiKey },
+                { "pageSize", pageSize.ToString() },
+                { "language", "vi" } // Tìm kiếm tin tức tiếng Việt
+            };
 
-                // Thêm tham số from nếu có
-                if (fromDate.HasValue)
-                {
-                    queryParams.Add("from", fromDate.Value.ToString("yyyy-MM-dd"));
-                }
-
-                var requestUrl = url + "?" + string.Join("&", queryParams.Select(x => $"{x.Key}={Uri.EscapeDataString(x.Value)}"));
-                
-                _logger.LogInformation($"Calling NewsAPI with URL: {requestUrl}");
-                
-                try
-                {
-                    var response = await _httpClient.GetAsync(requestUrl);
-                    
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        _logger.LogError($"HTTP Error from NewsAPI: {response.StatusCode} - {await response.Content.ReadAsStringAsync()}");
-                        
-                        // Thử với GNews API nếu NewsAPI không thành công
-                        return await GetArticlesFromGNewsAsync(query, fromDate, sortBy, pageSize);
-                    }
-                    
-                    var content = await response.Content.ReadAsStringAsync();
-                    _logger.LogDebug($"NewsAPI response: {content}");
-                    
-                    try
-                    {
-                        var newsApiResponse = JsonSerializer.Deserialize<NewsApiResponse>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                        
-                        if (newsApiResponse == null || newsApiResponse.Articles == null)
-                        {
-                            _logger.LogError("Failed to deserialize NewsAPI response");
-                            return await GetArticlesFromGNewsAsync(query, fromDate, sortBy, pageSize);
-                        }
-                        
-                        // Chuyển đổi kết quả sang model của ứng dụng (đã phù hợp)
-                        return newsApiResponse.Articles;
-                    }
-                    catch (JsonException jsonEx)
-                    {
-                        _logger.LogError(jsonEx, $"JSON Deserialization error with NewsAPI: {jsonEx.Message}");
-                        return await GetArticlesFromGNewsAsync(query, fromDate, sortBy, pageSize);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, $"Error with NewsAPI: {ex.Message}");
-                    return await GetArticlesFromGNewsAsync(query, fromDate, sortBy, pageSize);
-                }
-            }
-            catch (Exception ex)
+            // Thêm tham số from nếu có
+            if (fromDate.HasValue)
             {
-                _logger.LogError(ex, $"General error in GetArticlesAsync: {ex.Message}");
-                _useMockData = true;
-                return GetMockData();
+                queryParams.Add("from", fromDate.Value.ToString("yyyy-MM-dd"));
             }
-        }
 
-        private async Task<List<Article>> GetArticlesFromGNewsAsync(string query, DateTime? fromDate, string sortBy, int pageSize)
-        {
-            try
+            // Thêm tham số sortBy nếu có
+            if (!string.IsNullOrEmpty(sortBy))
             {
-                var url = "https://gnews.io/api/v4/search";
-                
-                var queryParams = new Dictionary<string, string>
-                {
-                    { "q", query },
-                    { "token", _apiKey },
-                    { "max", pageSize.ToString() },
-                    { "lang", "vi" } // Tìm kiếm tin tức tiếng Việt
-                };
-
-                // Thêm tham số from nếu có
-                if (fromDate.HasValue)
-                {
-                    queryParams.Add("from", fromDate.Value.ToString("yyyy-MM-dd"));
-                }
-
-                var requestUrl = url + "?" + string.Join("&", queryParams.Select(x => $"{x.Key}={Uri.EscapeDataString(x.Value)}"));
-                
-                _logger.LogInformation($"Calling GNews API with URL: {requestUrl}");
-                
-                var response = await _httpClient.GetAsync(requestUrl);
-                
-                if (!response.IsSuccessStatusCode)
-                {
-                    _logger.LogError($"HTTP Error from GNews: {response.StatusCode} - {await response.Content.ReadAsStringAsync()}");
-                    _useMockData = true;
-                    return GetMockData();
-                }
-                
-                var content = await response.Content.ReadAsStringAsync();
-                
-                var gnewsResponse = JsonSerializer.Deserialize<GNewsResponse>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                
-                if (gnewsResponse == null)
-                {
-                    _logger.LogError("Failed to deserialize GNews API response");
-                    _useMockData = true;
-                    return GetMockData();
-                }
-                
-                // Chuyển đổi cấu trúc GNews article sang cấu trúc Article của ứng dụng
-                var articles = gnewsResponse.Articles.Select(gnewsArticle => new Article
-                {
-                    Source = new Source
-                    {
-                        Id = gnewsArticle.Source?.Id,
-                        Name = gnewsArticle.Source?.Name
-                    },
-                    Author = gnewsArticle.Source?.Name, // GNews không luôn cung cấp tác giả
-                    Title = gnewsArticle.Title,
-                    Description = gnewsArticle.Description,
-                    Url = gnewsArticle.Url,
-                    UrlToImage = gnewsArticle.Image,
-                    PublishedAt = gnewsArticle.PublishedAt,
-                    Content = gnewsArticle.Content
-                }).ToList();
-                
-                return articles;
+                queryParams.Add("sortBy", sortBy);
             }
-            catch (Exception ex)
+
+            var requestUrl = url + "?" + string.Join("&", queryParams.Select(x => $"{x.Key}={Uri.EscapeDataString(x.Value)}"));
+            
+            _logger.LogInformation($"Calling NewsAPI with URL: {requestUrl}");
+            
+            var request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
+            request.Headers.Add("User-Agent", "VtvNewsApp");
+            
+            var response = await _httpClient.SendAsync(request);
+            
+            if (!response.IsSuccessStatusCode)
             {
-                _logger.LogError(ex, $"Error with GNews API: {ex.Message}");
-                _useMockData = true;
-                return GetMockData();
+                _logger.LogError($"HTTP Error: {response.StatusCode}");
+                throw new Exception($"HTTP Error: {response.StatusCode}");
             }
+            
+            var content = await response.Content.ReadAsStringAsync();
+            
+            var newsApiResponse = JsonSerializer.Deserialize<NewsApiResponse>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            
+            if (newsApiResponse == null || newsApiResponse.Status != "ok")
+            {
+                _logger.LogError($"API Error: {newsApiResponse?.Message ?? "Unknown error"}");
+                throw new Exception($"API Error: {newsApiResponse?.Message ?? "Lỗi khi phân tích phản hồi từ API"}");
+            }
+            
+            _logger.LogInformation($"API returned {newsApiResponse.Articles?.Count ?? 0} articles before relevance scoring");
+            
+            var articles = newsApiResponse.Articles ?? new List<Article>();
+            
+            // Thay vì lọc loại bỏ, hãy sắp xếp theo mức độ liên quan đến Việt Nam
+            return RankArticlesByVietnameseRelevance(articles);
         }
 
         public List<Article> FilterArticles(List<Article> articles, string term)
@@ -196,89 +96,58 @@ namespace VtvNewsApp.Services
             if (string.IsNullOrWhiteSpace(term)) 
                 return articles;
                 
-            // Tách các từ khóa tìm kiếm và lọc riêng lẻ thay vì toàn bộ chuỗi
-            var searchTerms = term.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries)
-                .Where(t => t.Length > 2) // Chỉ sử dụng từ có ý nghĩa (loại bỏ từ ngắn)
-                .ToList();
-            
-            if (!searchTerms.Any())
-                return articles;
-            
-            // Một bài viết chỉ cần khớp với một trong các từ khóa là được
+            var termLower = term.ToLower();
             return articles.Where(article => 
-            {
-                string title = (article.Title ?? "").ToLower();
-                string description = (article.Description ?? "").ToLower();
-                string content = (article.Content ?? "").ToLower();
-                
-                // Kiểm tra xem bài viết có chứa ít nhất một trong các từ khóa không
-                return searchTerms.Any(term => 
-                    title.Contains(term) || 
-                    description.Contains(term) || 
-                    content.Contains(term)
-                );
-            }).ToList();
+                (article.Title?.ToLower().Contains(termLower) ?? false) ||
+                (article.Description?.ToLower().Contains(termLower) ?? false) ||
+                (article.Content?.ToLower().Contains(termLower) ?? false)
+            ).ToList();
         }
         
-        // Tạo dữ liệu mẫu khi API không hoạt động
-        private List<Article> GetMockData()
+        // Phương thức mới: Sắp xếp bài viết theo mức độ liên quan đến Việt Nam thay vì lọc loại bỏ
+        private List<Article> RankArticlesByVietnameseRelevance(List<Article> articles)
         {
-            var currentTime = DateTime.UtcNow.ToString("o");
-            return new List<Article>
-            {
-                new Article 
-                {
-                    Title = "Việt Nam tiếp tục duy trì tăng trưởng kinh tế ổn định",
-                    Description = "Theo báo cáo mới nhất, kinh tế Việt Nam duy trì đà tăng trưởng ổn định bất chấp nhiều thách thức từ thị trường toàn cầu.",
-                    UrlToImage = "https://via.placeholder.com/400x250?text=Kinh+Te+Viet+Nam",
-                    PublishedAt = currentTime,
-                    Url = "#",
-                    Source = new Source { Name = "Báo VTV" }
-                },
-                new Article 
-                {
-                    Title = "Hà Nội triển khai nhiều dự án hạ tầng mới",
-                    Description = "Thành phố Hà Nội đang đẩy mạnh triển khai các dự án hạ tầng giao thông trọng điểm nhằm giảm ùn tắc và phát triển đô thị bền vững.",
-                    UrlToImage = "https://via.placeholder.com/400x250?text=Ha+Noi+Projects",
-                    PublishedAt = currentTime,
-                    Url = "#",
-                    Source = new Source { Name = "Báo Chính Phủ" }
-                },
-                new Article 
-                {
-                    Title = "Đội tuyển Việt Nam chuẩn bị cho vòng loại World Cup",
-                    Description = "HLV Philippe Troussier đang tích cực chuẩn bị cho đội tuyển Việt Nam trước các trận đấu vòng loại World Cup sắp tới.",
-                    UrlToImage = "https://via.placeholder.com/400x250?text=Vietnam+Football",
-                    PublishedAt = currentTime,
-                    Url = "#",
-                    Source = new Source { Name = "VTV Sports" }
-                }
+            var vietnamKeywords = new[] 
+            { 
+                "vietnam", "việt nam", "viet nam", "vietnamese", "việt", "viet", 
+                "hanoi", "hà nội", "ha noi", "ho chi minh", "hồ chí minh", 
+                "saigon", "sài gòn", "sai gon", "đà nẵng", "da nang", "hue", "huế"
             };
+            
+            // Tính điểm liên quan cho mỗi bài viết
+            var scoredArticles = articles.Select(article => 
+            {
+                var title = (article.Title ?? "").ToLower();
+                var description = (article.Description ?? "").ToLower();
+                var content = (article.Content ?? "").ToLower();
+                
+                // Tính điểm dựa trên số lượng từ khóa xuất hiện
+                int relevanceScore = 0;
+                foreach (var keyword in vietnamKeywords)
+                {
+                    // Từ khóa trong tiêu đề quan trọng hơn
+                    if (title.Contains(keyword)) relevanceScore += 3;
+                    if (description.Contains(keyword)) relevanceScore += 2;
+                    if (content.Contains(keyword)) relevanceScore += 1;
+                }
+                
+                return new { Article = article, Score = relevanceScore };
+            })
+            .OrderByDescending(item => item.Score) // Sắp xếp theo điểm giảm dần
+            .Select(item => item.Article)
+            .ToList();
+            
+            _logger.LogInformation($"Ranked {scoredArticles.Count} articles by Vietnamese relevance");
+            
+            return scoredArticles;
         }
     }
-    
-    // Lớp phụ để deserialize phản hồi từ GNews API
-    public class GNewsResponse
-    {
-        public int TotalArticles { get; set; }
-        public List<GNewsArticle> Articles { get; set; } = new List<GNewsArticle>();
-    }
 
-    public class GNewsArticle
+    public class NewsApiResponse
     {
-        public string? Title { get; set; }
-        public string? Description { get; set; }
-        public string? Content { get; set; }
-        public string? Url { get; set; }
-        public string? Image { get; set; }
-        public string? PublishedAt { get; set; }
-        public GNewsSource? Source { get; set; }
-    }
-
-    public class GNewsSource
-    {
-        public string? Name { get; set; }
-        public string? Url { get; set; }
-        public string? Id { get; set; } // Thêm Id field để tương thích với Source của ứng dụng
+        public string Status { get; set; } = "";
+        public string? Message { get; set; }
+        public int TotalResults { get; set; }
+        public List<Article>? Articles { get; set; }
     }
 }
